@@ -39,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // If there are no errors, insert the product into the database
     if (empty($errors)) {
-        $sql = "INSERT INTO products (name, description, price, image_path)
-                VALUES (:name, :description, :price, :image_path)";
+        $sql = "INSERT INTO products (name, description,  image_path)
+                VALUES (:name, :description,  :image_path)";
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(':name', $name);
