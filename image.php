@@ -1,119 +1,92 @@
-
 <?php
-// Make sure the user is logged in before they can access this page
-require "authenticatio.php";
+require 'config.php';
 
-// Connect to the database
-require "connect.php";
+$member_id = $_GET['id'] ?? 0;
 
-// Show the admin-style header/navigation
-require "header_admin.php";
+// Check if member exists
+$stmt = $pdo->prepare("SELECT * FROM photos WHERE id = ?");
+$stmt->execute([$member_id]);
+$member = $stmt->fetch();
 
-// Array for validation errors
-$errors = [];
+if (!$member) {
+    header("Location: index.php");
+    exit;
+}
+$error = '';
+$success = '';
 
-// Success message
-$success = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['photo'])) {
+    $file = $_FILES['photo'];
+    
+    // limiting the pictures
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $max_size = 5 * 1024 * 1024; 
 
-// Check if the form was submitted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($file['error'] !== 0) {
+        $error = "Error uploading file.";
+    } elseif (!in_array($file['type'], $allowed_types)) {
+        $error = "Only JPG, PNG, GIF, and WebP images are allowed.";
+    } elseif ($file['size'] > $max_size) {
+        $error = "File is too large. Maximum size is 5MB.";
+    } else {
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $new_filename = "member_" . $id . "_" . time() . "." . $ext;
+        $upload_path = "assets/uploads/" . $new_filename;
 
-    // Get and sanitize form values
-    $name = trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS));
-    $description = trim(filter_input(INPUT_POST, 'description', FILTER_SANITIZE_SPECIAL_CHARS));
-   
-
-    // This will store the image path for the database
-    $imagePath = null;
-
-    // Validate image name
-    if ($name === '') {
-        $errors[] = "Product name is required.";
-    }
-
-    // Validate description
-    if ($description === '') {
-        $errors[] = "Product description is required.";
-    }
-
-
-    // If there are no errors, insert the product into the database
-    if (empty($errors)) {
-        $sql = "INSERT INTO products (name, description,  image_path)
-                VALUES (:name, :description,  :image_path)";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindParam(':name', $name);
-        $stmt->bindParam(':description', $description);
-        $stmt->bindParam(':image_path', $imagePath);
-        $stmt->execute();
-
-        $success = "Product added successfully!";
+        if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+            // Update teammember picture
+            $stmt = $pdo->prepare("UPDATE team_members SET photo = ? WHERE id = ?");
+            $stmt->execute([$new_filename, $id]);
+            
+            $success = "Photo uploaded successfully!";
+        } else {
+            $error = "Failed to save the file.";
+        }
     }
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upload Photo for <?= htmlspecialchars($photos['photos'] . ' ' ) ?></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
 
-<main class="container mt-4">
-    <h1>Add image</h1>
+<div class="container py-5">
+  <h2>Upload Photo for <?= htmlspecialchars($photos['photos'] . ' ' ) ?></h2>
+  
+  <a href="index.php" class="btn btn-secondary mb-4">← Back to Team</a>
+  <?php if ($success): ?>
+    <div class="alert alert-success"><?= $success ?></div>
+  <?php endif; ?>
 
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
-            <h3>Please fix the following:</h3>
-            <ul class="mb-0">
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
+  <?php if ($error): ?>
+    <div class="alert alert-danger"><?= $error ?></div>
+  <?php endif; ?>
 
-    <?php if ($success !== ""): ?>
-        <div class="alert alert-success">
-            <?= htmlspecialchars($success); ?>
-        </div>
-    <?php endif; ?>
-    <!--enctype="multipart/form-data" required for uploads, will not send properly if not included -->
-    <form method="post" enctype="multipart/form-data" class="mt-3">
-        <label for="name" class="form-label">Product Name</label>
-        <input
-            type="text"
-            id="name"
-            name="name"
-            class="form-control mb-3"
-            required
-        >
-
-        <label for="description" class="form-label">Description</label>
-        <textarea
-            id="description"
-            name="description"
-            class="form-control mb-3"
-            rows="4"
-            required
-        ></textarea>
-
-        <label for="index.php" class="form-label">Price</label>
-        <input
-            type="number"
-            id="Naame"
-            name="price"
-            class="form-control mb-3"
-            step="0.01"
-            min="0"
-            required
-        >
-
-        <label for="product_image" class="form-label">Image gallery</label>
-        <input
-            type="file"
-            id="product_image"
-            name="product_image"
-            class="form-control mb-4"
-            accept=".jpg,.jpeg,.png,.webp"
-        >
-
-        <button type="submit" class="btn btn-primary">Add Product</button>
+  <div class="card p-4 shadow-sm">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label">Choose Photo</label>
+        <input type="file" name="photo" class="form-control" accept="image/*" required>
+        <small class="text-muted">Allowed: JPG, PNG, GIF, WebP (max 5MB)</small>
+      </div>
+      
+      <button type="submit" class="btn btn-primary">Upload Photo</button>
     </form>
-</main>
+  </div>
 
-<?php require "footer.php"; ?>
+  <?php if (!empty($photos['photo'])): ?>
+    <div class="mt-4">
+      <h5>Current Photo:</h5>
+      <img src="assets/uploads/<?= htmlspecialchars($member['photo']) ?>" 
+           alt="Current photo" class="img-fluid rounded shadow" style="max-width: 300px;">
+    </div>
+  <?php endif; ?>
+</div>
+
+</body>
+</html>

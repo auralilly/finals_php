@@ -1,0 +1,4 @@
+CREATE TABLE team_members (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    photos  VARCHAR(50) NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
