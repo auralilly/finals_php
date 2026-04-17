@@ -1,7 +1,7 @@
 
 <?php
 // Make sure the user is logged in before they can access this page
-require "authentication.php";
+require "authenticatio.php";
 
 // Connect to the database
 require "connect.php";
@@ -92,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             required
         ></textarea>
 
-        <label for="price" class="form-label">Price</label>
+        <label for="index.php" class="form-label">Price</label>
         <input
             type="number"
-            id="price"
+            id="Naame"
             name="price"
             class="form-control mb-3"
             step="0.01"
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             required
         >
 
-        <label for="product_image" class="form-label">Product Image</label>
+        <label for="product_image" class="form-label">Image gallery</label>
         <input
             type="file"
             id="product_image"
